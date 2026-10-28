@@ -5,7 +5,8 @@
   "keywords" : ["org chart", "organization chart", "hierarchy", "tree", "orgchart", "d3", "region", "connect by"],
   "homepage" : "https://github.com/HashaamShoukat/apex-plugin-hierarchy-pro",
   "bugs" : {
-    "url" : "https://github.com/HashaamShoukat/apex-plugin-hierarchy-pro/issues"
+    "url" : "https://github.com/HashaamShoukat/apex-plugin-hierarchy-pro/issues",
+    "email" : "hashaam.shoukat@gmail.com"
   },
   "license" : "MIT",
   "commercial" : "No",
