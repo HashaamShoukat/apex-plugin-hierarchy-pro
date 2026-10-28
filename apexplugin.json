@@ -24,7 +24,7 @@
       "plugin" : {
         "internalName" : "COM.HASHAAM.HIERARCHY_PRO",
         "type" : "region",
-        "demo" : "",
+        "demo" : "https://oracleapex.com/ords/r/hashaam-admin/apex-plugins-by-hbs/hierarchy-chart",
         "previewImage" : "https://raw.githubusercontent.com/HashaamShoukat/apex-plugin-hierarchy-pro/main/docs/images/preview.gif"
       }
     }

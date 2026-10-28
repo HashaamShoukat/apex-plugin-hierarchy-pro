@@ -6,7 +6,7 @@ A region plug-in that turns any hierarchical SQL query into an interactive chart
 
 ![Hierarchy Pro preview](docs/images/preview.gif)
 
-**[Demo](#demo-application)** · [Install](#install) · [First chart in 2 minutes](#your-first-org-chart-in-2-minutes) · [JavaScript API](#javascript-api) · [Changelog](CHANGELOG.md) · [Issues](https://github.com/HashaamShoukat/apex-plugin-hierarchy-pro/issues)
+**[Live demo](https://oracleapex.com/ords/r/hashaam-admin/apex-plugins-by-hbs/hierarchy-chart)** (demo / Demo@2026) · [Install](#install) · [First chart in 2 minutes](#your-first-org-chart-in-2-minutes) · [JavaScript API](#javascript-api) · [Changelog](CHANGELOG.md) · [Issues](https://github.com/HashaamShoukat/apex-plugin-hierarchy-pro/issues)
 
 ## Features
 
@@ -176,7 +176,7 @@ Colours come from Universal Theme variables, so Theme Roller and dark mode apply
 
 ## Demo application
 
-The live demo on apex.oracle.com (link coming soon; sign in with **demo / Demo@2026**) is the author's plug-in showcase; its *Hierarchy Pro* menu has:
+The **[live demo](https://oracleapex.com/ords/r/hashaam-admin/apex-plugins-by-hbs/hierarchy-chart)** on apex.oracle.com (sign in with **demo / Demo@2026**) is the author's plug-in showcase; its *Hierarchy Pro* menu has:
 
 - **Overview** - Avatar Card, all views, customization in the browser, contractors as roll-up.
 - **Org Chart with Photos** - Photo Card from a BLOB column, Link Builder to an employee dialog, customization per user, a multi-select "Find people".
