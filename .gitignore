@@ -1,0 +1,6 @@
+node_modules/
+qa/out/
+qa/live-out*/
+# checks against a private APEX instance
+qa/live*.js
+*.log

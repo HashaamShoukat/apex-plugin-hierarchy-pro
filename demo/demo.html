@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hierarchy Pro - demo</title>
+<link rel="stylesheet" href="../dist/hierarchyChartPro.css">
+<style>
+    /* stand-ins for the Universal Theme variables the plug-in reads */
+    :root {
+        --ut-body-background-color: #f7f6f4;
+        --ut-body-text-color: #1c1f23;
+        --ut-component-background-color: #ffffff;
+        --ut-component-text-default-color: #1c1f23;
+        --ut-component-text-muted-color: #5f6670;
+        --ut-component-border-color: #e2e0dc;
+        --ut-palette-primary: #2f5fd0;
+        --ut-palette-primary-contrast: #ffffff;
+        --ut-palette-warning: #d97706;
+        --ut-palette-danger: #dc2626;
+    }
+    html[data-theme="dark"] {
+        --ut-body-background-color: #15181c;
+        --ut-body-text-color: #e7e9ec;
+        --ut-component-background-color: #1f2328;
+        --ut-component-text-default-color: #e7e9ec;
+        --ut-component-text-muted-color: #a3aab3;
+        --ut-component-border-color: #343a42;
+        --ut-palette-primary: #6c95ff;
+        --ut-palette-primary-contrast: #0b1020;
+        --ut-palette-warning: #f59e0b;
+    }
+    html, body { margin: 0; }
+    /* the normalize rule Universal Theme ships - kept here so the demo catches clipping bugs */
+    svg:not(:root) { overflow: hidden; }
+    body {
+        background: var(--ut-body-background-color);
+        color: var(--ut-body-text-color);
+        font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Tahoma, Arial, sans-serif;
+    }
+    .bar {
+        display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center;
+        padding: 10px 16px; border-bottom: 1px solid var(--ut-component-border-color);
+        background: var(--ut-component-background-color); font-size: 12.5px;
+    }
+    .bar h1 { font-size: 15px; margin: 0 12px 0 0; }
+    .bar label { display: inline-flex; gap: 6px; align-items: center; }
+    .bar select { font: inherit; padding: 3px 4px; background: var(--ut-component-background-color); color: inherit; border: 1px solid var(--ut-component-border-color); border-radius: 6px; }
+    main { padding: 16px; }
+    #log { font: 11px/1.4 ui-monospace, Consolas, monospace; color: var(--ut-component-text-muted-color); padding: 6px 16px; height: 18px; overflow: hidden; white-space: nowrap; }
+    body.shot .bar, body.shot #log { display: none; }
+</style>
+</head>
+<body>
+<div class="bar">
+    <h1>Hierarchy Pro</h1>
+    <label>Data <select id="data">
+        <option value="org">150 people (English)</option>
+        <option value="ar">150 people (Arabic)</option>
+        <option value="big">5,000 nodes</option>
+        <option value="lazy">Lazy loading - 10,000</option>
+        <option value="cb">CONNECT BY ... LEVEL rows</option>
+        <option value="bad">Broken data (cycle, orphan)</option>
+    </select></label>
+    <label>Style <select id="style"></select></label>
+    <label>Layout <select id="orient"></select></label>
+    <label>Connector <select id="connector"><option>ROUNDED</option><option>ELBOW</option><option>CURVED</option><option>STRAIGHT</option></select></label>
+    <label>Leaves <select id="leaf"><option>AUTO</option><option>ROW</option><option>STACK</option><option>GRID</option></select></label>
+    <label><input type="checkbox" id="compact"> Compact</label>
+    <label><input type="checkbox" id="dark"> Dark</label>
+    <label><input type="checkbox" id="rtl"> RTL</label>
+    <label><input type="checkbox" id="mini"> Mini-map</label>
+    <label><input type="checkbox" id="bands"> Level bands</label>
+</div>
+<div id="log"></div>
+<main>
+    <div id="orgChart" class="t-Region"><div id="orgChart_hcp"></div></div>
+</main>
+<script src="mock-data.js"></script>
+<script src="../dist/hierarchyChartPro.js"></script>
+<script>
+(function () {
+    const P = new URLSearchParams(location.search);
+    const $ = id => document.getElementById(id);
+    hierarchyChartPro.styles.forEach(s => $("style").add(new Option(s, s)));
+    hierarchyChartPro.orientations.forEach(s => $("orient").add(new Option(s, s)));
+    const st = {
+        data: P.get("data") || "org",
+        style: P.get("style") || "AVATAR",
+        orient: P.get("orient") || "TB",
+        connector: P.get("connector") || "ROUNDED",
+        leaf: P.get("leaf") || "AUTO",
+        compact: P.get("compact") === "1",
+        dark: P.get("theme") === "dark",
+        rtl: P.get("dir") === "rtl",
+        mini: P.get("mini") === "1",
+        bands: P.get("bands") === "1",
+        only: P.get("only") === "1"
+    };
+    if (P.get("shot")) document.body.classList.add("shot");
+    const AR_MSG = {
+        SEARCH: "بحث…", ZOOM_IN: "تكبير", ZOOM_OUT: "تصغير",
+        FIT: "ملاءمة الشاشة", MORE: "%0 المزيد",
+        MORE_FIELDS: "+%0 المزيد", MATCHES: "%0 من %1", NO_MATCH: "لا توجد نتائج"
+    };
+
+    function apply() {
+        document.documentElement.dataset.theme = st.dark ? "dark" : "light";
+        document.documentElement.dir = st.rtl ? "rtl" : "ltr";
+        document.documentElement.lang = st.rtl ? "ar" : "en";
+        ["data", "style", "orient", "connector", "leaf"].forEach(k => ($(k).value = st[k]));
+        ["compact", "dark", "rtl", "mini", "bands"].forEach(k => ($(k).checked = st[k]));
+        let data, provider, lazy = false;
+        if (st.data === "lazy") {
+            provider = HCP_MOCK.lazyProvider(HCP_MOCK.big(10000, 11), 2);
+            lazy = true;
+        } else {
+            data = st.data === "ar" ? HCP_MOCK.org("ar") : st.data === "big" ? HCP_MOCK.big(5000) : st.data === "cb" ? HCP_MOCK.connectBy() : st.data === "bad" ? HCP_MOCK.bad() : HCP_MOCK.org("en");
+            provider = () => new Promise(res => setTimeout(() => res(data), 30));
+        }
+        const t0 = performance.now();
+        // the columns, as the region's Columns settings would send them (nothing is guessed from aliases)
+        const roles = st.data === "cb"
+            ? { level: "LEVEL", id: "NODE_ID", title: "TITLE", subtitle: "SUBTITLE", color: "NODE_COLOR", legend: "LEGEND" }
+            : { id: "NODE_ID", parent: "PARENT_ID", title: "TITLE", subtitle: "SUBTITLE", image: "IMAGE_URL", color: "NODE_COLOR", legend: "LEGEND",
+                link: "LINK", highlight: "HIGHLIGHT", statusColor: "STATUS_COLOR", badge: "BADGE", rollup: "SALARY", footer: "LOCATION" };
+        window.chart = hierarchyChartPro.init("orgChart", {
+            dataProvider: provider,
+            roles,
+            rollupLabel: st.rtl ? "الرواتب" : "Payroll",
+            views: P.get("views") ? P.get("views").split(",") : undefined,
+            showBody: P.get("body") !== "0",
+            lazy,
+            style: st.style,
+            orientation: st.orient,
+            connector: st.connector,
+            leafLayout: st.leaf,
+            compact: st.compact,
+            miniMap: st.mini,
+            levelBands: st.bands,
+            initialLevels: +P.get("levels") || (st.data === "big" || lazy ? 2 : 3),
+            fields: [{ c: "GRADE", l: st.rtl ? "الدرجة" : "Grade" }, { c: "JOINED", l: st.rtl ? "تاريخ التعيين" : "Joined" }, { c: "EMAIL", l: "Email" }, { c: "EXT", l: "Ext." }],  // Body Columns 1-4
+            msg: st.rtl ? AR_MSG : {},
+            heightMode: P.get("height") ? "FIXED" : "VIEWPORT",
+            height: +P.get("height") || 600,
+            onClick: "TOGGLE",
+            initialView: P.get("view") || "FIT",
+            animate: !P.get("shot"),
+            toolbar: ["search", "zoom", "fit", "expand", "highlighted", "compact", "photos", "details", "orientation", "style", "export", "fullscreen"],
+            // screenshots start from the plain settings unless the panel itself is being shot
+            customize: P.get("customize") || (P.get("shot") && !P.get("cfg") ? "NONE" : "BROWSER"),
+            prefsKey: "demo"
+        });
+        document.getElementById("orgChart").addEventListener("hierarchychartpro_after_render", e => {
+            $("log").textContent = "rendered " + e.detail.nodeCount + " nodes (" + e.detail.visibleCount + " visible) in " + Math.round(performance.now() - t0) + " ms";
+            if (st.only) window.chart.showHighlightedOnly(true);
+            if (P.get("cfg")) window.chart._cfgToggle();
+            document.body.dataset.ready = "1";
+        }, { once: true });
+    }
+    ["data", "style", "orient", "connector", "leaf"].forEach(k => $(k).addEventListener("change", e => { st[k] = e.target.value; apply(); }));
+    ["compact", "dark", "rtl", "mini", "bands"].forEach(k => $(k).addEventListener("change", e => { st[k] = e.target.checked; apply(); }));
+    ["node_click", "expand", "collapse", "selection_change"].forEach(n =>
+        $("orgChart").addEventListener("hierarchychartpro_" + n, e => ($("log").textContent = n + ": " + (e.detail && (e.detail.title || e.detail.id)))));
+    apply();
+})();
+</script>
+</body>
+</html>

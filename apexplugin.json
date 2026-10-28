@@ -1,0 +1,32 @@
+{
+  "name" : "Hierarchy Pro",
+  "version" : "2.1.0",
+  "description" : "Turns any hierarchical SQL query (parent/child or CONNECT BY) into an interactive org chart: 10 card views, photos from a BLOB column, highlighting many nodes from the data (e.g. who is absent in my team) with legend counts and a Highlighted Only view, Link Builder links, per-user customization, search, lazy loading for thousands of nodes, PNG/SVG export, RTL and dark mode.",
+  "keywords" : ["org chart", "organization chart", "hierarchy", "tree", "orgchart", "d3", "region", "connect by"],
+  "homepage" : "https://github.com/HashaamShoukat/apex-plugin-hierarchy-pro",
+  "bugs" : {
+    "url" : "https://github.com/HashaamShoukat/apex-plugin-hierarchy-pro/issues"
+  },
+  "license" : "MIT",
+  "commercial" : "No",
+  "author" : {
+    "name" : "Hashaam Shoukat",
+    "url" : "https://github.com/HashaamShoukat"
+  },
+  "repository" : {
+    "type" : "git",
+    "url" : "https://github.com/HashaamShoukat/apex-plugin-hierarchy-pro.git"
+  },
+  "oracle" : {
+    "versions" : ["19.0.0", "21.0.0", "23.0.0"],
+    "apex" : {
+      "versions" : ["24.1.0", "24.2.0", "26.1.0"],
+      "plugin" : {
+        "internalName" : "COM.HASHAAM.HIERARCHY_PRO",
+        "type" : "region",
+        "demo" : "",
+        "previewImage" : "https://raw.githubusercontent.com/HashaamShoukat/apex-plugin-hierarchy-pro/main/docs/images/preview.gif"
+      }
+    }
+  }
+}
