@@ -62,15 +62,11 @@ create or replace package body hierarchy_chart_plugin_pkg as
     end ra;
 
 
-    -- DOM id of the region element: 26.1 has a separate HTML DOM ID, older releases use the static id
+    -- DOM id of the region element (the region's HTML DOM ID, APEX 26.1+)
     function region_dom_id ( p_region in apex_plugin.t_region ) return varchar2
     is
     begin
-        $if $$hcp_dom_id $then
         return coalesce(p_region.dom_id, p_region.static_id, 'R' || p_region.id);
-        $else
-        return coalesce(p_region.static_id, 'R' || p_region.id);
-        $end
     end region_dom_id;
 
     function num ( p_val in varchar2, p_default in number ) return number
@@ -237,6 +233,7 @@ create or replace package body hierarchy_chart_plugin_pkg as
         return case when l_out is not null then '{' || l_out || '}' end;
     exception
         when others then
+            apex_debug.warn('Hierarchy Pro: saved customization ignored (%s)', sqlerrm);
             return null;
     end clean_prefs;
 
@@ -251,8 +248,12 @@ create or replace package body hierarchy_chart_plugin_pkg as
             using to_number(v('APP_ID')), to_number(v('APP_PAGE_ID')), prefs_key(p_region), upper(v('APP_USER'));
         return clean_prefs(l_json);
     exception
+        when no_data_found then
+            return null; -- nothing saved yet
         when others then
-            return null; -- nothing saved yet, or the table is not installed
+            -- e.g. the table HIERARCHY_CHART_PREFS is not installed (db/install.sql)
+            apex_debug.warn('Hierarchy Pro: saved customization not read (%s)', sqlerrm);
+            return null;
     end load_prefs;
 
     procedure save_prefs ( p_region in apex_plugin.t_region, p_json in varchar2 )
@@ -464,9 +465,14 @@ create or replace package body hierarchy_chart_plugin_pkg as
         l_id_j  pls_integer := col_index(g_roles('id'));
         l_pid_j pls_integer := col_index(g_roles('parent'));
         l_ids   apex_t_varchar2 := apex_t_varchar2();
+        l_chunk apex_t_varchar2;
         l_kids  t_rows;
         l_more  boolean := false;
         l_p     varchar2(4000);
+        l_pcol  varchar2(300);
+        l_ctx   apex_exec.t_context;
+        l_flt   apex_exec.t_filters;
+        i       pls_integer := 1;
     begin
         for i in p_from .. p_rows.count loop
             l_ids.extend;
@@ -476,13 +482,53 @@ create or replace package body hierarchy_chart_plugin_pkg as
         if l_ids.count = 0 then
             return;
         end if;
-        fetch_in(p_region, g_roles('parent'), l_ids, 200000, l_kids, l_more);
-        for i in 1 .. l_kids.count loop
-            l_p := l_kids(i)(l_pid_j);
-            if l_p is not null and p_counts.exists(l_p) then
-                p_counts(l_p) := p_counts(l_p) + 1;
-            end if;
-        end loop;
+        -- the database counts: one grouped row per parent instead of every child row
+        l_pcol := dbms_assert.enquote_name(g_roles('parent'), false);
+        begin
+            while i <= l_ids.count loop
+                l_chunk := apex_t_varchar2();
+                for k in i .. least(i + c_in_chunk - 1, l_ids.count) loop
+                    l_chunk.extend;
+                    l_chunk(l_chunk.count) := l_ids(k);
+                end loop;
+                l_flt.delete;
+                apex_exec.add_filter(
+                    p_filters     => l_flt,
+                    p_filter_type => apex_exec.c_filter_in,
+                    p_column_name => g_roles('parent'),
+                    p_values      => l_chunk );
+                l_ctx := apex_region.open_query_context(
+                             p_page_id            => v('APP_PAGE_ID'),
+                             p_region_id          => p_region.id,
+                             p_additional_filters => l_flt,
+                             p_outer_sql          => 'select ' || l_pcol || ' as hcp$parent, count(*) as hcp$kids'
+                                                  || ' from #APEX$SOURCE_DATA# group by ' || l_pcol,
+                             p_max_rows           => c_in_chunk + 1 );
+                while apex_exec.next_row(l_ctx) loop
+                    l_p := apex_exec.get_varchar2(l_ctx, 1);
+                    if l_p is not null and p_counts.exists(l_p) then
+                        p_counts(l_p) := apex_exec.get_number(l_ctx, 2);
+                    end if;
+                end loop;
+                apex_exec.close(l_ctx);
+                i := i + c_in_chunk;
+            end loop;
+        exception
+            when others then
+                -- a source the outer query cannot wrap: count the fetched children instead
+                apex_exec.close(l_ctx);
+                apex_debug.warn('Hierarchy Pro: grouped child count failed (%s), counting rows', sqlerrm);
+                for k in 1 .. l_ids.count loop
+                    p_counts(l_ids(k)) := 0;
+                end loop;
+                fetch_in(p_region, g_roles('parent'), l_ids, 200000, l_kids, l_more);
+                for k in 1 .. l_kids.count loop
+                    l_p := l_kids(k)(l_pid_j);
+                    if l_p is not null and p_counts.exists(l_p) then
+                        p_counts(l_p) := p_counts(l_p) + 1;
+                    end if;
+                end loop;
+        end;
     end child_counts;
 
     -- the rows for p_ids plus every ancestor, ordered root first
@@ -620,9 +666,14 @@ create or replace package body hierarchy_chart_plugin_pkg as
         sys.owa_util.mime_header(nvl(l_mime, 'image/jpeg'), false);
         sys.htp.p('Content-Length: ' || dbms_lob.getlength(l_blob));
         sys.htp.p('Cache-Control: private, max-age=3600');
+        sys.htp.p('X-Content-Type-Options: nosniff');
         sys.owa_util.http_header_close;
         sys.wpg_docload.download_file(l_blob);
+        -- nothing may follow the file (same as the other plug-ins' downloads)
+        apex_application.stop_apex_engine;
     exception
+        when apex_application.e_stop_apex_engine then
+            raise;
         when others then
             apex_exec.close(l_ctx);
             raise;
@@ -791,9 +842,17 @@ create or replace package body hierarchy_chart_plugin_pkg as
         l_json := apex_json.get_clob_output;
         apex_json.free_output;
 
+        -- settings as a JSON block: no length limit (a long Custom Template, text
+        -- messages and saved preferences can pass what on-load code holds)
+        sys.htp.prn('<script type="application/json" id="' || apex_escape.html_attribute(l_id) || '_hcp_cfg">');
+        apex_util.prn(replace(l_json, '</', '<\/'), false);
+        sys.htp.p('</script>');
+        dbms_lob.freetemporary(l_json);
+
         apex_javascript.add_onload_code(
             p_code => 'hierarchyChartPro.init(' || apex_javascript.add_value(l_id, false) || ','
-                      || dbms_lob.substr(l_json, 32000, 1) || ','
+                      || 'JSON.parse(document.getElementById(' || apex_javascript.add_value(l_id || '_hcp_cfg', false)
+                      || ').textContent),'
                       || nvl(trim(p_region.init_javascript_code), 'null') || ');' );
     end render;
 
@@ -943,6 +1002,8 @@ create or replace package body hierarchy_chart_plugin_pkg as
             write_error('Unknown request ' || l_req);
         end if;
     exception
+        when apex_application.e_stop_apex_engine then
+            raise;   -- the photo download ends the request on purpose
         when others then
             apex_debug.error('Hierarchy Pro %s: %s', l_req, sqlerrm);
             write_error(case when apex_application.g_debug then sqlerrm else 'The chart data could not be loaded.' end);

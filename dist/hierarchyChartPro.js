@@ -1,4 +1,4 @@
-/* Hierarchy Pro 2.1.0 - bundles d3-hierarchy, d3-zoom, d3-selection, d3-transition (ISC, (c) Mike Bostock) */
+/* Hierarchy Pro 2.2.0 - bundles d3-hierarchy, d3-zoom, d3-selection, d3-transition (ISC, (c) Mike Bostock) */
 var hierarchyChartPro = (() => {
   var __defProp = Object.defineProperty;
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -3422,10 +3422,16 @@ var hierarchyChartPro = (() => {
   }
   function debounce(fn, ms) {
     let t;
-    return function(...a) {
+    const d = function(...a) {
       clearTimeout(t);
       t = setTimeout(() => fn.apply(this, a), ms);
     };
+    d.cancel = () => clearTimeout(t);
+    return d;
+  }
+  function isApple() {
+    const p = navigator.userAgentData && navigator.userAgentData.platform || navigator.userAgent || "";
+    return /mac|iphone|ipad|ipod/i.test(p);
   }
   function hashHue(s) {
     let h = 0;
@@ -3875,16 +3881,24 @@ var hierarchyChartPro = (() => {
         this._cull();
         this._drawMini();
       }, 120);
+      const onFs = () => {
+        const fs = document.fullscreenElement === this.el;
+        if (fs !== this.isFs) this._fsChanged(fs);
+      };
+      const ns = ".hcp" + String(this.regionId).replace(/[^\w-]/g, "_");
       window.addEventListener("resize", onResize);
       if (window.ResizeObserver) {
         this.ro = new ResizeObserver(onResize);
         this.ro.observe(this.vp);
       }
-      if (window.apex && apex.jQuery) apex.jQuery(window).on("apexwindowresized", onResize);
-      document.addEventListener("fullscreenchange", () => {
-        const fs = document.fullscreenElement === this.el;
-        if (fs !== this.isFs) this._fsChanged(fs);
-      });
+      if (window.apex && apex.jQuery) apex.jQuery(window).on("apexwindowresized" + ns, onResize);
+      document.addEventListener("fullscreenchange", onFs);
+      this._unlisten = () => {
+        onResize.cancel && onResize.cancel();
+        window.removeEventListener("resize", onResize);
+        document.removeEventListener("fullscreenchange", onFs);
+        if (window.apex && apex.jQuery) apex.jQuery(window).off("apexwindowresized" + ns);
+      };
     }
     _itemVal(name) {
       if (window.apex && apex.item) return apex.item(name).getValue();
@@ -3942,7 +3956,7 @@ var hierarchyChartPro = (() => {
       }
     }
     _hint() {
-      const m = this.msg.CTRL_ZOOM.replace("Ctrl", /Mac|iPhone|iPad/.test(navigator.platform) ? "\u2318" : "Ctrl");
+      const m = this.msg.CTRL_ZOOM.replace("Ctrl", isApple() ? "\u2318" : "Ctrl");
       this.hint.textContent = m;
       this.hint.classList.add("is-on");
       clearTimeout(this.hintT);
@@ -6357,6 +6371,8 @@ var hierarchyChartPro = (() => {
       this._closeMenu();
       this._cfgClose();
       if (this.ro) this.ro.disconnect();
+      if (this._unlisten) this._unlisten();
+      this.destroyed = true;
       this.el.innerHTML = "";
       instances.delete(this.regionId);
     }

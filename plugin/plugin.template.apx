@@ -1,0 +1,54 @@
+plugin hierarchyChartPro (
+    name: Hierarchy Pro
+    staticId: COM.HASHAAM.HIERARCHY_PRO
+    type: region
+    component {
+        standardAttributes: [
+            regionSourceSupportsDifferentDataSources
+            pageItemsToSubmitAttr
+            noDataFoundMessageAttr
+            initJavascriptCodeAttr
+            regionColumns
+            headingColumnAttr
+            escapeSpecialCharsColumnAttr
+            supportsFacetedSearchSmartFilters
+        ]
+    }
+    callbacks {
+        renderProcedureName: hierarchy_chart_plugin_pkg.render
+        ajaxProcedureName: hierarchy_chart_plugin_pkg.ajax
+    }
+    css {
+        fileUrls: #PLUGIN_FILES#css/hierarchyChartPro#MIN#.css?v=@@VERSION@@
+    }
+    javaScript {
+        fileUrls: #PLUGIN_FILES#js/hierarchyChartPro#MIN#.js?v=@@VERSION@@
+    }
+    information {
+        version: @@VERSION@@
+        helpText:
+            ```
+            Hierarchy Pro renders any hierarchical SQL query as an interactive chart: org charts, departments, cost centres, bills of material, account trees.
+
+            Write any query, then pick its columns. Hierarchy: Node ID and Parent ID (or Level for a CONNECT BY query) are required, Level Name names the levels. Columns: Title is required; Subtitle, Color, Badge, Legend, Body Columns 1-4 (the body of the Detailed and Colored Header views), Footer and Roll-up are optional. Images: an Icon Column and an Image BLOB Query for the photos. Highlighting takes a Highlight Column and a Highlight Color Column from the query. Team sizes, child counts (also with lazy loading) and hover text are worked out by the plug-in. Node links are set with the Link Builder (Behavior > Link) and Link Attributes.
+
+            The Default View is what everybody starts with; users may switch to the Views Users Can Pick and, with User Customization on, change the look and the card content for themselves. Every view shows the title, team / roll-up totals and highlighting; the other content is fixed per view (see Default View help).
+
+            Ten views, five orientations, four connector styles, stacked or gridded leaf teams, pan & zoom, search, path highlighting, status highlighting with colours, counts and a Highlighted Only filter, Compact / Photos / Details switches, legend, level bands, mini-map, lazy loading for very large trees, PNG / SVG / print export, full screen, keyboard navigation, RTL and dark mode.
+
+            JavaScript: apex.region("<static id>").expandAll() / collapseAll() / expandTo(id) / focusNode(id) / highlight([ids], fit) / clearHighlight() / showHighlightedOnly(true) / setOrientation("LR") / setStyle("BADGE") / setOption(name, value) / getViews() / fit() / exportImage("png") / getNode(id) / drillTo(id) / customize() / refresh().
+            ```
+    }
+
+    standardAttributeConfig (
+        name: hasInitJavaScriptCodeAttribute
+    )
+
+    standardAttributeConfig (
+        name: regionSourceSupportsDifferentDataSources
+        validation {
+            required: true
+        }
+    )
+
+)

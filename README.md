@@ -1,6 +1,6 @@
 # Hierarchy Pro for Oracle APEX
 
-[![APEX 24.1+](https://img.shields.io/badge/Oracle%20APEX-24.1%2B-blue)](https://apex.oracle.com) [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE) [![Version](https://img.shields.io/badge/version-2.1.0-informational)](CHANGELOG.md)
+[![APEX 26.1+](https://img.shields.io/badge/Oracle%20APEX-26.1%2B-blue)](https://apex.oracle.com) [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE) [![Version](https://img.shields.io/badge/version-2.2.0-informational)](CHANGELOG.md)
 
 A region plug-in that turns any hierarchical SQL query into an interactive chart: org charts, departments, cost centres, bills of material, account trees.
 
@@ -20,7 +20,7 @@ A region plug-in that turns any hierarchical SQL query into an interactive chart
 - **CONNECT BY** queries without a parent column, five orientations including radial, four connector styles, level bands named from the data.
 - Search, path highlighting, legend, mini-map, drill into a branch, PNG / SVG / print export, full screen, keyboard and screen-reader support, right-to-left and dark mode (Universal Theme colours), Dynamic Action events and a JavaScript API. UI texts in English and Arabic.
 
-Requires **APEX 24.1 or later** and Oracle Database 19c or later. The layout engine is the plug-in's own (a contour-based tidy tree with variable card heights); it uses a few D3 modules, bundled into the plug-in file, so there are no CDN calls.
+Requires **APEX 26.1 or later** and Oracle Database 19c or later. Browsers: Chrome / Edge 111, Firefox 113, Safari 16.2 or later (the stylesheet uses `color-mix()` and container queries). The layout engine is the plug-in's own (a contour-based tidy tree with variable card heights); it uses a few D3 modules, bundled into the plug-in file, so there are no CDN calls.
 
 | | |
 |---|---|
@@ -34,9 +34,7 @@ Requires **APEX 24.1 or later** and Oracle Database 19c or later. The layout eng
 ## Install
 
 1. **Database objects.** As the application's parsing schema run `@db/install.sql`. It creates the package `HIERARCHY_CHART_PLUGIN_PKG` and the table `HIERARCHY_CHART_PREFS` (each user's saved customization). Safe to run again.
-2. **Plug-in.** Shared Components > Plug-ins > Import:
-   - `plugin/region_type_plugin_com_hashaam_hierarchy_pro.sql` for APEX 26.1 and later;
-   - `plugin/region_type_plugin_com_hashaam_hierarchy_pro_24.1.sql` for APEX 24.1 and 24.2 (the same plug-in without the APEXlang-only names).
+2. **Plug-in.** Shared Components > Plug-ins > Import `plugin/region_type_plugin_com_hashaam_hierarchy_pro.sql`.
 3. **Optional translations.** `@db/text_messages_en_ar.sql <app id>` creates the UI texts as text messages `HCP.*` in English and Arabic.
 
 The internal name is `COM.HASHAAM.HIERARCHY_PRO`; the callbacks are `hierarchy_chart_plugin_pkg.render` and `.ajax`. To remove the database objects run `@db/uninstall.sql`.
@@ -160,7 +158,7 @@ chart.getNode(id);             chart.getSelection();       chart.select(id);   c
 chart.customize();             chart.getCustomization();   chart.resetCustomization();
 ```
 
-Set the region's **Advanced > HTML DOM ID** (26.1) or **Static ID** (24.x) so that `apex.region("...")` finds it. The **Initialization JavaScript Function** receives the options and returns them - e.g. photos that are URLs rather than BLOBs: `function(o){ o.roles.image = "PHOTO_URL"; return o; }`.
+Set the region's **Advanced > HTML DOM ID** so that `apex.region("...")` finds it. The **Initialization JavaScript Function** receives the options and returns them - e.g. photos that are URLs rather than BLOBs: `function(o){ o.roles.image = "PHOTO_URL"; return o; }`.
 
 ## Dynamic Action events
 
@@ -197,16 +195,16 @@ node qa/custom.js    # views, switches, customization and highlighting on demo/d
 node qa/perf.js      # layout and render timings
 ```
 
-Copy `dist/*` into the plug-in's files (`js/`, `css/`) after a build.
+`npm run build` takes the version from `package.json` into the package spec, `apexplugin.json`, this README and `dist/plugin.apx` (file URLs carry a content hash). With `APEX_APP_DIR` set to an APEXlang application folder it also writes the plug-in files and `plugin.apx` into that application. Otherwise copy `dist/*` into the plug-in's files (`js/`, `css/`).
 
 ```
-plugin/   importable plug-in exports (26.1, and 24.1 / 24.2)
+plugin/   importable plug-in export (APEX 26.1+), plugin.template.apx (APEXlang definition)
 db/       hierarchy_chart_plugin_pkg.pks/.pkb, install.sql, uninstall.sql, text_messages_en_ar.sql
 src/      js/hierarchyChartPro.js, css/hierarchyChartPro.css (sources)
 dist/     built and minified files
 demo/     demo.html (runs without APEX), mock-data.js, sample_data.sql
 qa/       custom.js, perf.js, shots.js (Playwright checks on the demo page)
-tools/    downlevel.mjs (24.1 export), gen-messages.mjs, gen-sample-data.mjs, messages_ar.json, sig/
+tools/    gen-messages.mjs, gen-sample-data.mjs, messages_ar.json
 docs/     images/
 ```
 
@@ -216,7 +214,7 @@ docs/     images/
 - **Radial layout**: leaf teams are not stacked or gridded.
 - **Link Builder**: each node's URL is prepared on the server (checksum), a little time per row on very large non-lazy charts.
 - **Export**: photos from another origin are exported as initials; web fonts are embedded only from the same origin.
-- **Compatibility**: built and tested on APEX 26.1; the 24.1 export is checked against the APEX 24.2 import API.
+- **Compatibility**: built and tested on APEX 26.1.
 
 ## Support
 

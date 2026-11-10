@@ -16,12 +16,10 @@ create or replace package hierarchy_chart_plugin_pkg authid definer as
 --   PREFS     x02 = JSON        -> saves the user's customization
 --
 -- The columns are chosen declaratively in the region's Columns settings; Node ID,
--- Title and Parent ID (or Level) are required. APEX 24.1 or later. Compiled with
--- PLSQL_CCFLAGS 'hcp_dom_id:TRUE' on 26.1+ (separate region HTML DOM ID);
--- install.sql picks the flag automatically.
+-- Title and Parent ID (or Level) are required. APEX 26.1 or later.
 --------------------------------------------------------------------------------
 
-    c_version constant varchar2(10) := '2.1.0';
+    c_version constant varchar2(10) := '2.2.0';
 
     procedure render (
         p_region in            apex_plugin.t_region,

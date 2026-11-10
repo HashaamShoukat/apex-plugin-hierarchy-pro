@@ -281,10 +281,18 @@ function isBlank(v) {
 
 function debounce(fn, ms) {
     let t;
-    return function (...a) {
+    const d = function (...a) {
         clearTimeout(t);
         t = setTimeout(() => fn.apply(this, a), ms);
     };
+    d.cancel = () => clearTimeout(t);
+    return d;
+}
+
+// Apple keyboards show Cmd instead of Ctrl (userAgentData where the browser has it)
+function isApple() {
+    const p = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.userAgent || "";
+    return /mac|iphone|ipad|ipod/i.test(p);
 }
 
 function hashHue(s) {
@@ -812,16 +820,26 @@ class Chart {
             this._cull();
             this._drawMini();
         }, 120);
+        // window / document listeners are kept so destroy() can remove them: a
+        // region refresh or a second init must not leave the old chart listening
+        const onFs = () => {
+            const fs = document.fullscreenElement === this.el;
+            if (fs !== this.isFs) this._fsChanged(fs);
+        };
+        const ns = ".hcp" + String(this.regionId).replace(/[^\w-]/g, "_");
         window.addEventListener("resize", onResize);
         if (window.ResizeObserver) {
             this.ro = new ResizeObserver(onResize);
             this.ro.observe(this.vp);
         }
-        if (window.apex && apex.jQuery) apex.jQuery(window).on("apexwindowresized", onResize);
-        document.addEventListener("fullscreenchange", () => {
-            const fs = document.fullscreenElement === this.el;
-            if (fs !== this.isFs) this._fsChanged(fs);
-        });
+        if (window.apex && apex.jQuery) apex.jQuery(window).on("apexwindowresized" + ns, onResize);
+        document.addEventListener("fullscreenchange", onFs);
+        this._unlisten = () => {
+            onResize.cancel && onResize.cancel();
+            window.removeEventListener("resize", onResize);
+            document.removeEventListener("fullscreenchange", onFs);
+            if (window.apex && apex.jQuery) apex.jQuery(window).off("apexwindowresized" + ns);
+        };
     }
 
     _itemVal(name) {
@@ -869,7 +887,7 @@ class Chart {
     }
 
     _hint() {
-        const m = this.msg.CTRL_ZOOM.replace("Ctrl", /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl");
+        const m = this.msg.CTRL_ZOOM.replace("Ctrl", isApple() ? "⌘" : "Ctrl");
         this.hint.textContent = m;
         this.hint.classList.add("is-on");
         clearTimeout(this.hintT);
@@ -3362,6 +3380,8 @@ class Chart {
         this._closeMenu();
         this._cfgClose();
         if (this.ro) this.ro.disconnect();
+        if (this._unlisten) this._unlisten();
+        this.destroyed = true;
         this.el.innerHTML = "";
         instances.delete(this.regionId);
     }

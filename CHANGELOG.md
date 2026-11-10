@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.2.0 (2026-11-10)
+
+APEX 26.1 or later only: the 24.1 / 24.2 export, its downlevel tool and the install-time compile flag are gone.
+
+- **Fix:** the region settings were written into the page's on-load code and cut at 32,000 characters, so a long Custom Template with translated texts and saved preferences could break the page without a message. They now travel in a JSON block with no length limit.
+- **Fix:** every chart added window resize, APEX resize and full-screen listeners that were never removed; refreshing or re-initialising a region left the old chart listening. `destroy()` now removes them.
+- **Faster lazy loading:** closed nodes' child counts are counted by the database (one grouped row per parent) instead of fetching every child row with all its columns. Sources the grouped query cannot wrap fall back to the old count.
+- The photo endpoint ends the request after the image (`apex_application.stop_apex_engine`) and sends `X-Content-Type-Options: nosniff`, like the other plug-ins' downloads.
+- A missing preferences table or an unreadable saved customization is written to the debug log instead of being ignored silently.
+- The Ctrl / Cmd hint uses `navigator.userAgentData` where the browser has it (`navigator.platform` is deprecated).
+- `npm run build` takes the version from `package.json` into the package, `apexplugin.json`, the README and the plug-in definition; file URLs carry a content hash instead of the bare version.
+- Browsers: Chrome / Edge 111, Firefox 113, Safari 16.2 or later, stated in the README.
+
 ## 2.1.0 (2026-10-27)
 
 - Renamed to **Hierarchy Pro**, internal name `COM.HASHAAM.HIERARCHY_PRO`. First public release on GitHub.

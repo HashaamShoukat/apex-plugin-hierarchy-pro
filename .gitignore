@@ -4,3 +4,4 @@ qa/live-out*/
 # checks against a private APEX instance
 qa/live*.js
 *.log
+tests/out/

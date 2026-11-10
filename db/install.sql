@@ -4,9 +4,7 @@
 --
 -- Creates table HIERARCHY_CHART_PREFS (each user's saved customization, used
 -- when User Customization = "Yes - saved per user") and package
--- HIERARCHY_CHART_PLUGIN_PKG. Requires APEX 24.1 or later; on 26.1+ the
--- region's separate HTML DOM ID is used (detected here by test-compiling).
--- Safe to run again.
+-- HIERARCHY_CHART_PLUGIN_PKG. Requires APEX 26.1 or later. Safe to run again.
 --------------------------------------------------------------------------------
 set define off
 set serveroutput on
@@ -37,29 +35,6 @@ begin
 end;
 /
 
-prompt Detecting the APEX plug-in API ...
-declare
-    l_domid boolean;
-
-    -- true when the anonymous block compiles on this APEX release
-    function compiles ( p_code in varchar2 ) return boolean
-    is
-    begin
-        execute immediate p_code;
-        return true;
-    exception
-        when others then
-            return sqlcode <> -6550; -- PLS compile error = field not there
-    end compiles;
-begin
-    -- 26.1+: separate HTML DOM ID of a region
-    l_domid := compiles(q'[declare r apex_plugin.t_region; v varchar2(255); begin v := r.dom_id; end;]');
-    execute immediate 'alter session set plsql_ccflags = ''hcp_dom_id:'
-                      || case when l_domid then 'TRUE' else 'FALSE' end || '''';
-    dbms_output.put_line('hcp_dom_id = ' || case when l_domid then 'TRUE' else 'FALSE' end);
-end;
-/
-
 prompt Creating HIERARCHY_CHART_PLUGIN_PKG ...
 @@hierarchy_chart_plugin_pkg.pks
 @@hierarchy_chart_plugin_pkg.pkb
@@ -67,5 +42,4 @@ prompt Creating HIERARCHY_CHART_PLUGIN_PKG ...
 show errors package hierarchy_chart_plugin_pkg
 show errors package body hierarchy_chart_plugin_pkg
 
-alter session set plsql_ccflags = '';
 prompt Done.
